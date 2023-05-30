@@ -635,8 +635,7 @@ SceneNode* SceneManager::getSceneNode(const String& name, bool throwExceptionIfN
 }
 
 //-----------------------------------------------------------------------
-const Pass* SceneManager::_setPass(const Pass* pass, bool evenIfSuppressed, 
-                                   bool shadowDerivation)
+const Pass* SceneManager::_setPass(const Pass* pass, bool shadowDerivation)
 {
     //If using late material resolving, swap now.
     if (isLateMaterialResolving()) 
@@ -653,14 +652,9 @@ const Pass* SceneManager::_setPass(const Pass* pass, bool evenIfSuppressed,
         //Should we warn or throw an exception if an illegal state was achieved?
     }
 
-    if (mIlluminationStage == IRS_RENDER_TO_TEXTURE && shadowDerivation)
+    if (shadowDerivation)
     {
-        // Derive a special shadow caster pass from this one
-        pass = mShadowRenderer.deriveShadowCasterPass(pass);
-    }
-    else if (mIlluminationStage == IRS_RENDER_RECEIVER_PASS && shadowDerivation)
-    {
-        pass = mShadowRenderer.deriveShadowReceiverPass(pass);
+        pass = mShadowRenderer.deriveTextureShadowPass(pass);
     }
 
     // Tell params about current pass
@@ -3446,7 +3440,7 @@ void SceneManager::_injectRenderWithPass(Pass *pass, Renderable *rend, bool shad
     bool doLightIteration, const LightList* manualLightList)
 {
     // render something as if it came from the current queue
-    const Pass *usedPass = _setPass(pass, false, shadowDerivation);
+    const Pass *usedPass = _setPass(pass, shadowDerivation);
     renderSingleObject(rend, usedPass, false, doLightIteration, manualLightList);
 }
 //---------------------------------------------------------------------

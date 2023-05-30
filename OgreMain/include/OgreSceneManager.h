@@ -864,6 +864,8 @@ namespace Ogre {
             */
             const Pass* deriveShadowReceiverPass(const Pass* pass);
 
+            const Pass* deriveTextureShadowPass(const Pass* pass);
+
             void initShadowVolumeMaterials();
             void setShadowTextureCasterMaterial(const MaterialPtr& mat);
             void setShadowTextureReceiverMaterial(const MaterialPtr& mat);
@@ -3217,15 +3219,13 @@ namespace Ogre {
 
         /** Internal method for setting up the renderstate for a rendering pass.
             @param pass The Pass details to set.
-            @param evenIfSuppressed unused
             @param shadowDerivation If false, disables the derivation of shadow
                 passes from original passes
             @return
                 A Pass object that was used instead of the one passed in, can
                 happen when rendering shadow passes
         */
-        const Pass* _setPass(const Pass* pass,
-            bool evenIfSuppressed = false, bool shadowDerivation = true);
+        const Pass* _setPass(const Pass* pass, bool shadowDerivation = true);
         
         /** Method to allow you to mark gpu parameters as dirty, causing them to 
             be updated according to the mask that you set when updateGpuProgramParameters is
