@@ -785,7 +785,7 @@ namespace Ogre {
             buffer already bound, and the number of vertices must agree with the
             number in start and end
         */
-        static void softwareVertexMorph(Real t, 
+        static void softwareVertexMorph(float t,
             const HardwareVertexBufferSharedPtr& b1, 
             const HardwareVertexBufferSharedPtr& b2, 
             VertexData* targetVertexData);
@@ -809,9 +809,9 @@ namespace Ogre {
             buffer already bound, and the number of vertices must agree with the
             number in start and end.
         */
-        static void softwareVertexPoseBlend(Real weight, 
-            const std::map<size_t, Vector3>& vertexOffsetMap,
-            const std::map<size_t, Vector3>& normalsMap,
+        static void softwareVertexPoseBlend(float weight,
+            const std::map<uint32, Vector3f>& vertexOffsetMap,
+            const std::map<uint32, Vector3f>& normalsMap,
             VertexData* targetVertexData);
         /** Gets a reference to the optional name assignments of the SubMeshes. */
         const SubMeshNameMap& getSubMeshNameMap(void) const { return mSubMeshNameMap; }

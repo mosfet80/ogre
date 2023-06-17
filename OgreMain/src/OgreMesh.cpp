@@ -1901,7 +1901,7 @@ namespace Ogre {
             targetVertexData->vertexCount);
     }
     //---------------------------------------------------------------------
-    void Mesh::softwareVertexMorph(Real t,
+    void Mesh::softwareVertexMorph(float t,
         const HardwareVertexBufferSharedPtr& b1,
         const HardwareVertexBufferSharedPtr& b2,
         VertexData* targetVertexData)
@@ -1950,9 +1950,9 @@ namespace Ogre {
             morphNormals);
     }
     //---------------------------------------------------------------------
-    void Mesh::softwareVertexPoseBlend(Real weight,
-        const std::map<size_t, Vector3>& vertexOffsetMap,
-        const std::map<size_t, Vector3>& normalsMap,
+    void Mesh::softwareVertexPoseBlend(float weight,
+        const std::map<uint32, Vector3f>& vertexOffsetMap,
+        const std::map<uint32, Vector3f>& normalsMap,
         VertexData* targetVertexData)
     {
         // Do nothing if no weight
@@ -1982,11 +1982,11 @@ namespace Ogre {
             // Adjust pointer
             float *pdst = pBase + i.first*elemsPerVertex;
 
-            *pdst = *pdst + (i.second.x * weight);
+            *pdst = *pdst + (i.second[0] * weight);
             ++pdst;
-            *pdst = *pdst + (i.second.y * weight);
+            *pdst = *pdst + (i.second[01] * weight);
             ++pdst;
-            *pdst = *pdst + (i.second.z * weight);
+            *pdst = *pdst + (i.second[2] * weight);
             ++pdst;
             
         }
@@ -2000,11 +2000,11 @@ namespace Ogre {
                 // Adjust pointer
                 float *pdst = pNormBase + i.first*elemsPerVertex;
 
-                *pdst = *pdst + (i.second.x * weight);
+                *pdst = *pdst + (i.second[0] * weight);
                 ++pdst;
-                *pdst = *pdst + (i.second.y * weight);
+                *pdst = *pdst + (i.second[1] * weight);
                 ++pdst;
-                *pdst = *pdst + (i.second.z * weight);
+                *pdst = *pdst + (i.second[2] * weight);
                 ++pdst;             
                 
             }
