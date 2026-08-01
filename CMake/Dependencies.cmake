@@ -87,29 +87,29 @@ set(CMAKE_FRAMEWORK_PATH ${CMAKE_FRAMEWORK_PATH} ${OGRE_DEP_SEARCH_PATH})
 if(OGRE_BUILD_DEPENDENCIES AND NOT EXISTS ${OGREDEPS_PATH})
     message(STATUS "Building pugixml")
     file(DOWNLOAD
-        https://github.com/zeux/pugixml/releases/download/v1.15/pugixml-1.15.tar.gz
-        ${PROJECT_BINARY_DIR}/pugixml-1.15.tar.gz)
+        https://github.com/zeux/pugixml/releases/download/v1.16/pugixml-1.16.tar.gz
+        ${PROJECT_BINARY_DIR}/pugixml-1.16.tar.gz)
     execute_process(COMMAND ${CMAKE_COMMAND}
-        -E tar xf pugixml-1.15.tar.gz WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+        -E tar xf pugixml-1.16.tar.gz WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
     execute_process(COMMAND ${BUILD_COMMAND_COMMON}
         -DCMAKE_POSITION_INDEPENDENT_CODE=TRUE # this will be linked into a shared lib
         ${PROJECT_BINARY_DIR}/pugixml-1.15
-        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/pugixml-1.15)
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/pugixml-1.16)
     execute_process(COMMAND ${CMAKE_COMMAND}
-        --build ${PROJECT_BINARY_DIR}/pugixml-1.15 ${BUILD_COMMAND_OPTS})
+        --build ${PROJECT_BINARY_DIR}/pugixml-1.16 ${BUILD_COMMAND_OPTS})
 
     #find_package(Freetype)
     if (NOT FREETYPE_FOUND)
         message(STATUS "Building freetype")
         file(DOWNLOAD
-            https://download.savannah.gnu.org/releases/freetype/freetype-2.14.1.tar.gz
-            ${PROJECT_BINARY_DIR}/freetype-2.14.1.tar.gz)
+            https://download.savannah.gnu.org/releases/freetype/freetype-2.14.3.tar.gz
+            ${PROJECT_BINARY_DIR}/freetype-2.14.3.tar.gz)
         execute_process(COMMAND ${CMAKE_COMMAND}
-            -E tar xf freetype-2.14.1.tar.gz WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+            -E tar xf freetype-2.14.3.tar.gz WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
         # patch toolchain for iOS
         execute_process(COMMAND ${CMAKE_COMMAND} -E copy
             ${PROJECT_SOURCE_DIR}/CMake/toolchain/ios.toolchain.xcode.cmake
-            freetype-2.14.1/builds/cmake/iOS.cmake
+            freetype-2.14.3/builds/cmake/iOS.cmake
             WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
         execute_process(COMMAND ${BUILD_COMMAND_COMMON}
             -DBUILD_SHARED_LIBS=${OGREDEPS_SHARED}
@@ -119,11 +119,11 @@ if(OGRE_BUILD_DEPENDENCIES AND NOT EXISTS ${OGREDEPS_PATH})
             -DCMAKE_DISABLE_FIND_PACKAGE_BrotliDec=TRUE
             -DCMAKE_POLICY_VERSION_MINIMUM=3.12
             # workaround for broken iOS toolchain in freetype
-            -DPROJECT_SOURCE_DIR=${PROJECT_BINARY_DIR}/freetype-2.14.1
-            ${PROJECT_BINARY_DIR}/freetype-2.14.1
-            WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/freetype-2.14.1/objs)
+            -DPROJECT_SOURCE_DIR=${PROJECT_BINARY_DIR}/freetype-2.14.3
+            ${PROJECT_BINARY_DIR}/freetype-2.14.3
+            WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/freetype-2.14.3/objs)
         execute_process(COMMAND ${CMAKE_COMMAND}
-            --build ${PROJECT_BINARY_DIR}/freetype-2.14.1/objs ${BUILD_COMMAND_OPTS})
+            --build ${PROJECT_BINARY_DIR}/freetype-2.14.3/objs ${BUILD_COMMAND_OPTS})
     endif()
 
     if(MSVC OR MINGW OR SKBUILD) # other platforms dont need this
