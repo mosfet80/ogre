@@ -31,6 +31,7 @@ THE SOFTWARE.
 #include "OgreRenderable.h"
 #include "OgreControllerManager.h"
 #include "OgreViewport.h"
+#include "OgreFroxelizer.h"
 
 namespace Ogre {
     //-----------------------------------------------------------------------------
@@ -75,6 +76,8 @@ namespace Ogre {
         mBlankLight.setSpecularColour(ColourValue::Black);
         mBlankLight.setAttenuation(0,1,0,0);
         mDummyNode.attachObject(&mBlankLight);
+        mFroxelizer = std::make_unique<Froxelizer>();
+
         for(size_t i = 0; i < OGRE_MAX_SIMULTANEOUS_LIGHTS; ++i)
         {
             mTextureViewProjMatrixDirty[i] = true;
@@ -86,6 +89,7 @@ namespace Ogre {
         }
 
     }
+    AutoParamDataSource::~AutoParamDataSource() = default;
     //-----------------------------------------------------------------------------
 	const Camera* AutoParamDataSource::getCurrentCamera() const
 	{
@@ -174,13 +178,16 @@ namespace Ogre {
         static LightList NULL_LIGHTS;
         ll = ll ? ll : &NULL_LIGHTS;
 
+        // always refresh the pointer: callers may pass a stack-local LightList
+        // whose address differs from the previous one, even if its hash happens to match
+        mCurrentLightList = ll;
+
         uint32 hash = FastHash((const char*)ll->data(), ll->size() * sizeof(Light*));
         if (hash == mLastLightHash)
             return;
 
         mLastLightHash = hash;
         mGpuParamsDirty |= GPV_LIGHTS;
-        mCurrentLightList = ll;
 
         mLightPosViewSpaceArray.clear();
         mLightAttenuationArray.clear();
@@ -504,7 +511,8 @@ namespace Ogre {
     {
         if (mWorldViewProjMatrixDirty)
         {
-            mWorldViewProjMatrix = getProjectionMatrix() * getWorldViewMatrix();
+            // (proj*view) * world: spares a matrix multiply, if only the renderable changes
+            mWorldViewProjMatrix = getViewProjectionMatrix() * getWorldMatrix();
             mWorldViewProjMatrixDirty = false;
         }
         return mWorldViewProjMatrix;
@@ -1290,5 +1298,30 @@ namespace Ogre {
         }
     }
 
-}
+    const Vector4f& AutoParamDataSource::getFroxelTileParams() const
+    {
+        mFroxelizer->updateLayout(mCurrentCamera, mCurrentViewport);
+        return mFroxelizer->getTileParams();
+    }
 
+    const Vector4f& AutoParamDataSource::getFroxelDepthParams() const
+    {
+        mFroxelizer->updateLayout(mCurrentCamera, mCurrentViewport);
+        return mFroxelizer->getDepthParams();
+    }
+    bool AutoParamDataSource::refreshFroxelData() const
+    {
+        mFroxelizer->updateLayout(mCurrentCamera, mCurrentViewport);
+        return mFroxelizer->binLights(mCurrentCamera, *mCurrentLightList);
+    }
+    const std::vector<uint32>& AutoParamDataSource::getFroxelGrid() const
+    {
+        refreshFroxelData();
+        return mFroxelizer->getGrid();
+    }
+    const std::vector<uint32>& AutoParamDataSource::getFroxelRecords() const
+    {
+        refreshFroxelData();
+        return mFroxelizer->getRecords();
+    }
+} // namespace Ogre

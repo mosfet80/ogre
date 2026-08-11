@@ -110,7 +110,7 @@ float D_GGX(float roughness, float32_t NoH, const vec3 h, const vec3 n) {
 
 vec3 evaluateLight(
                 in f32vec3 vNormal,
-                in vec3 viewPos,
+                in f32vec3 viewPos,
                 in f32vec4 lightPos,
                 in vec3 lightColor,
                 in vec4 pointParams,
@@ -149,9 +149,10 @@ vec3 evaluateLight(
     vec3 h    = normalize(vView + vLightView);
     float NoH = saturate(dot(vNormalView, h));
     float NoV = clampNoV(abs(dot(vNormalView, vView)));
+    float LoH = saturate(dot(vLightView, h));
 
     float V = V_SmithGGXCorrelated(pixel.roughness, NoV, NoL);
-    vec3 F  = F_Schlick(pixel.f0, f90, NoH);
+    vec3 F  = F_Schlick(pixel.f0, f90, LoH);
     float D = D_GGX(pixel.roughness, NoH, h, vNormalView);
 
     vec3 Fr = (D * V) * F;
@@ -168,7 +169,7 @@ vec3 evaluateLight(
     return color;
 }
 
-void PBR_MakeParams(in vec3 baseColor, in vec3 ormParam, inout PixelParams pixel)
+void PBR_MakeParams(in vec3 baseColor, in vec3 ormParam, out PixelParams pixel)
 {
     pixel.baseColor = baseColor;
 
@@ -187,6 +188,11 @@ void PBR_MakeParams(in vec3 baseColor, in vec3 ormParam, inout PixelParams pixel
     pixel.energyCompensation = vec3_splat(0.0); // will be set later
 }
 
+#ifndef USE_FROXELS
+#define CURRENT_LIGHT_COUNT LIGHT_COUNT
+#define GET_LIGHT_INDEX(n) n
+#endif
+
 #if LIGHT_COUNT > 0
 void PBR_Lights(
 #ifdef SHADOWLIGHT_COUNT
@@ -196,23 +202,27 @@ void PBR_Lights(
                 in sampler2D ltcLUT1,
                 in sampler2D ltcLUT2,
 #endif
+#ifdef USE_FROXELS
+				in FroxelLights lights,
+#endif
                 in vec3 vNormal,
-                in vec3 viewPos,
+                in f32vec3 viewPos,
                 in vec4 ambient,
                 in f32vec4 lightPos[LIGHT_COUNT],
                 in f32vec4 lightColor[LIGHT_COUNT],
                 in f32vec4 pointParams[LIGHT_COUNT],
                 in f32vec4 vLightDirView[LIGHT_COUNT],
                 in f32vec4 spotParams[LIGHT_COUNT],
-                in PixelParams pixel,
+                inout PixelParams pixel,
                 inout vec3 vOutColour)
 {
     // Energy compensation for multiple scattering in a microfacet model
     // See "Multiple-Scattering Microfacet BSDFs with the Smith Model"
     pixel.energyCompensation = 1.0 + pixel.f0 * (1.0 / pixel.dfg.y - 1.0);
 
-    for(int i = 0; i < LIGHT_COUNT; i++)
+    for(int n = 0; n < CURRENT_LIGHT_COUNT; n++)
     {
+        int i = GET_LIGHT_INDEX(n);
 #ifdef HAVE_AREA_LIGHTS
         if(spotParams[i].w == 2.0)
         {
@@ -235,6 +245,6 @@ void PBR_Lights(
         vOutColour += lightVal;
     }
     // apply ambient occlusion to the indirect (ambient) term only
-    vOutColour += pixel.baseColor * ambient.rgb * pixel.ambientOcclusion;
+    vOutColour += pixel.diffuseColor * ambient.rgb * pixel.ambientOcclusion;
 }
 #endif

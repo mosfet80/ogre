@@ -2561,7 +2561,7 @@ static void buildScissor(const Light* light, const Camera* cam, RealRect& rect)
 {
     // Project the sphere onto the camera
     Sphere sphere(light->getDerivedPosition(), light->getAttenuationRange());
-    cam->Frustum::projectSphere(sphere, &(rect.left), &(rect.top), &(rect.right), &(rect.bottom));
+    cam->Frustum::projectSphere(sphere, rect);
 }
 const RealRect& SceneManager::getLightScissorRect(Light* l, const Camera* cam)
 {
@@ -3566,8 +3566,7 @@ void SceneManager::useLights(const LightList* lights, ushort limit)
 //---------------------------------------------------------------------
 void SceneManager::bindGpuProgram(GpuProgram* prog)
 {
-    // need to dirty the light hash, and params that need resetting, since program params will have been invalidated
-    mAutoParamDataSource->setCurrentLightList(nullptr);
+    // need to dirty the params that need resetting, since program params will have been invalidated
     mAutoParamDataSource->markGpuParamsDirty(GPV_ALL);
     mDestRenderSystem->bindGpuProgram(prog);
 }

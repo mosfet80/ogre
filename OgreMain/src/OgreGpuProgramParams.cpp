@@ -185,6 +185,10 @@ namespace Ogre
         AutoConstantDefinition(ACT_LIGHT_CUSTOM,        "light_custom", 4, ET_REAL, ACDT_INT),
         AutoConstantDefinition(ACT_POINT_PARAMS,                    "point_params",                   4, ET_REAL, ACDT_NONE),
         AutoConstantDefinition(ACT_MATERIAL_LOD_INDEX,       "material_lod_index",             1, ET_INT, ACDT_NONE),
+        AutoConstantDefinition(ACT_FROXEL_TILE_PARAMS,   "froxel_tile_params",   4, ET_REAL, ACDT_NONE),
+        AutoConstantDefinition(ACT_FROXEL_DEPTH_PARAMS, "froxel_depth_params", 4, ET_REAL, ACDT_NONE),
+        AutoConstantDefinition(ACT_FROXEL_GRID, "froxel_grid", 4096, ET_INT, ACDT_NONE),
+        AutoConstantDefinition(ACT_FROXEL_RECORDS, "froxel_records", 4096, ET_INT, ACDT_NONE),
 
         // NOTE: new auto constants must be added before this line, as the following are merely aliases
         // to allow legacy world_ names in scripts
@@ -401,6 +405,49 @@ namespace Ogre
 
         ++mVersion;
     }
+    void GpuSharedParameters::setAutoConstant(const String& name, GpuProgramParameters::AutoConstantType acType)
+    {
+        auto& def = mNamedConstants.map[name];
+        mAutoConstants.push_back({def.physicalIndex, acType, def.arraySize, def.elementSize});
+        // no version increment, as this is not a change to the buffer layout
+    }
+    void GpuSharedParameters::_updateAutoParams(const AutoParamDataSource* source)
+    {
+        for(auto& ac : mAutoConstants)
+        {
+            switch(ac.acType)
+            {
+            case GpuProgramParameters::ACT_FROXEL_GRID:
+            {
+                const auto& froxelGrid = source->getFroxelGrid();
+                auto size = std::min(froxelGrid.size(), ac.arraySize * ac.elementCount) * sizeof(uint32);
+                auto hash = FastHash((const char*)froxelGrid.data(), size);
+                if (hash != ac.hash)
+                {
+                    memcpy(&mConstants[ac.physicalIndex], froxelGrid.data(), size);
+                    ac.hash = hash;
+                    _markDirty();
+                }
+            }
+            break;
+            case GpuProgramParameters::ACT_FROXEL_RECORDS:
+            {
+                const auto& froxelRecords = source->getFroxelRecords();
+                auto size = std::min(froxelRecords.size(), ac.arraySize * ac.elementCount) * sizeof(uint32);
+                auto hash = FastHash((const char*)froxelRecords.data(), size);
+                if (hash != ac.hash)
+                {
+                    memcpy(&mConstants[ac.physicalIndex], froxelRecords.data(), size);
+                    ac.hash = hash;
+                    _markDirty();
+                }
+            }
+            break;
+            default:
+                break;
+            }
+        }
+    }
     //---------------------------------------------------------------------
     void GpuSharedParameters::removeConstantDefinition(const String& name)
     {
@@ -463,6 +510,7 @@ namespace Ogre
         mNamedConstants.map.clear();
         mNamedConstants.bufferSize = 0;
         mConstants.clear();
+        mAutoConstants.clear();
     }
     //---------------------------------------------------------------------
     GpuConstantDefinitionIterator GpuSharedParameters::getConstantDefinitionIterator(void) const
@@ -485,6 +533,15 @@ namespace Ogre
     const GpuNamedConstants& GpuSharedParameters::getConstantDefinitions() const
     {
         return mNamedConstants;
+    }
+    std::vector<std::pair<String, GpuConstantDefinition>> GpuSharedParameters::getConstantDefinitionsSorted() const
+    {
+        std::vector<std::pair<String, GpuConstantDefinition>> ordered(mNamedConstants.map.begin(),
+                                                                      mNamedConstants.map.end());
+        std::sort(ordered.begin(), ordered.end(),
+                  [](const auto& a, const auto& b) { return a.second.physicalIndex < b.second.physicalIndex; });
+
+        return ordered;
     }
     //---------------------------------------------------------------------
     void GpuSharedParameters::setNamedConstant(const String& name, const Matrix4& m)
@@ -640,6 +697,7 @@ namespace Ogre
         }
     }
 
+    const String& GpuSharedParametersUsage::getName() const { return mSharedParams->getName(); }
 
 
     //-----------------------------------------------------------------------------
@@ -652,7 +710,7 @@ namespace Ogre
         , mActivePassIterationIndex(std::numeric_limits<size_t>::max())
         , mUseLinearColours(false)
     {
-        static_assert((sizeof(AutoConstantDictionary) / sizeof(AutoConstantDefinition) - 5) == ACT_MATERIAL_LOD_INDEX,
+        static_assert((sizeof(AutoConstantDictionary) / sizeof(AutoConstantDefinition) - 5) == ACT_FROXEL_RECORDS,
                       "AutoConstantDictionary out of sync");
     }
     GpuProgramParameters::~GpuProgramParameters() {}
@@ -1008,6 +1066,8 @@ namespace Ogre
         case ACT_PASS_NUMBER:
         case ACT_TEXTURE_MATRIX:
         case ACT_LOD_CAMERA_POSITION:
+        case ACT_FROXEL_TILE_PARAMS:
+        case ACT_FROXEL_DEPTH_PARAMS:
 
             return (uint16)GPV_GLOBAL;
 
@@ -1443,6 +1503,11 @@ namespace Ogre
     //-----------------------------------------------------------------------------
     void GpuProgramParameters::_updateAutoParams(const AutoParamDataSource* source, uint16 mask)
     {
+        for (const auto& usage : mSharedParamSets)
+        {
+            usage.getSharedParams()->_updateAutoParams(source);
+        }
+
         // abort early if no autos
         if (!hasAutoConstants()) return;
         // abort early if variability doesn't match any param
@@ -2082,7 +2147,12 @@ namespace Ogre
                                           source->getSpotlightViewProjMatrix(l),ac.elementCount);
                     }
                     break;
-
+                case ACT_FROXEL_TILE_PARAMS:
+                    _writeRawConstant(ac.physicalIndex, source->getFroxelTileParams(), ac.elementCount);
+                    break;
+                case ACT_FROXEL_DEPTH_PARAMS:
+                    _writeRawConstant(ac.physicalIndex, source->getFroxelDepthParams(), ac.elementCount);
+                    break;
                 default:
                     break;
                 };

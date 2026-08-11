@@ -144,6 +144,11 @@ bool CookTorranceLighting::createCpuSubPrograms(ProgramSet* programSet)
                                        In(lightDiffuse),     In(pointParams), In(lightDirView),      In(spotParams),
                                        In(pixelParams),      InOut(outDiffuse).xyz()};
 
+        if(auto lights = psMain->getLocalParameter("lights"))
+        {
+            params.insert(params.begin(), {In(lights)});
+        }
+
         if(mLtcLUT1SamplerIndex > -1)
         {
             auto ltcLUT1 = psProgram->resolveParameter(GCT_SAMPLER2D, "ltcLUT1Sampler", mLtcLUT1SamplerIndex);
@@ -181,6 +186,17 @@ bool CookTorranceLighting::preAddToRenderState(const RenderState* renderState, P
         return false;
 
     mLightCount = renderState->getLightCount();
+
+	// Case this pass should run once per light(s) -> override the light policy.
+	if (srcPass->getIteratePerLight())
+	{
+		mLightCount = srcPass->getLightCountPerIteration();
+	}
+
+	if(srcPass->getMaxSimultaneousLights() == 0)
+	{
+		mLightCount = 0;
+	}
 
     if(renderState->haveAreaLights())
         mLtcLUT1SamplerIndex = ensureLtcLUTPresent(dstPass);

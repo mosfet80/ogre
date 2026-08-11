@@ -452,10 +452,9 @@ namespace Ogre{
     template <typename T>
     static bool getValue(PropertyAbstractNode* prop, ScriptCompiler *compiler, T& val)
     {
-        if (prop->values.size() > 1)
+        if (prop->values.size() != 1)
         {
-            compiler->addError(*prop, prop->name + " must have at most 1 argument",
-                               ScriptCompiler::CE_FEWERPARAMETERSEXPECTED);
+            compiler->addError(*prop, prop->name + " must have exactly 1 argument");
         }
         else
         {
@@ -2107,33 +2106,15 @@ namespace Ogre{
                         {
                             if(val)
                             {
-                                AbstractNodeList::const_iterator i1 = getNodeAt(prop->values, 1), i2 = getNodeAt(prop->values, 2),
-                                    i3 = getNodeAt(prop->values, 3);
-
                                 if (prop->values.size() > 1)
                                 {
-
-                                    Real constant = 0.0f, linear = 1.0f, quadratic = 0.0f;
-
-                                    if(i1 == prop->values.end() || !getValue(*i1, constant))
+                                    std::vector<float> data;
+                                    if(prop->values.size() != 4 || !getVector(++prop->values.begin(), prop->values.end(), data, 3))
                                     {
-                                        compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line,
-                                                           (*i1)->getValue() + " is not a valid number");
+                                        compiler->addError(*prop);
+                                        return;
                                     }
-
-                                    if(i2 == prop->values.end() || !getValue(*i2, linear))
-                                    {
-                                        compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line,
-                                                           (*i2)->getValue() + " is not a valid number");
-                                    }
-
-                                    if(i3 == prop->values.end() && !getValue(*i3, quadratic))
-                                    {
-                                        compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line,
-                                                           (*i3)->getValue() + " is not a valid number");
-                                    }
-
-                                    mPass->setPointAttenuation(true, constant, linear, quadratic);
+                                    mPass->setPointAttenuation(true, data[0], data[1], data[2]);
                                 }
                                 else
                                 {
@@ -3081,45 +3062,23 @@ namespace Ogre{
                     }
                     break;
                 case ID_SCROLL:
-                    if(prop->values.empty())
                     {
-                        compiler->addError(ScriptCompiler::CE_NUMBEREXPECTED, prop->file, prop->line);
-                    }
-                    else if(prop->values.size() > 2)
-                    {
-                        compiler->addError(ScriptCompiler::CE_FEWERPARAMETERSEXPECTED, prop->file, prop->line,
-                                           "scroll must have at most 2 arguments");
-                    }
-                    else
-                    {
-                        AbstractNodeList::const_iterator i0 = getNodeAt(prop->values, 0), i1 = getNodeAt(prop->values, 1);
-                        Real x, y;
-                        if(getReal(*i0, &x) && getReal(*i1, &y))
-                            mUnit->setTextureScroll(x, y);
+                        std::vector<float> v;
+                        if(prop->values.size() == 2 && getVector(prop->values.begin(), prop->values.end(), v, 2))
+                            mUnit->setTextureScroll(v[0], v[1]);
                         else
                             compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line,
-                                               (*i0)->getValue() + " and/or " + (*i1)->getValue() + " is invalid; both must be numbers");
+                                               "scroll requires exactly 2 numeric arguments");
                     }
                     break;
                 case ID_SCROLL_ANIM:
-                    if(prop->values.empty())
                     {
-                        compiler->addError(ScriptCompiler::CE_NUMBEREXPECTED, prop->file, prop->line);
-                    }
-                    else if(prop->values.size() > 2)
-                    {
-                        compiler->addError(ScriptCompiler::CE_FEWERPARAMETERSEXPECTED, prop->file, prop->line,
-                                           "scroll_anim must have at most 2 arguments");
-                    }
-                    else
-                    {
-                        AbstractNodeList::const_iterator i0 = getNodeAt(prop->values, 0), i1 = getNodeAt(prop->values, 1);
-                        Real x, y;
-                        if(getReal(*i0, &x) && getReal(*i1, &y))
-                            mUnit->setScrollAnimation(x, y);
+                        std::vector<float> v;
+                        if(prop->values.size() == 2 && getVector(prop->values.begin(), prop->values.end(), v, 2))
+                            mUnit->setScrollAnimation(v[0], v[1]);
                         else
                             compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line,
-                                               (*i0)->getValue() + " and/or " + (*i1)->getValue() + " is invalid; both must be numbers");
+                                               "scroll_anim requires exactly 2 numeric arguments");
                     }
                     break;
                 case ID_ROTATE:
@@ -3131,35 +3090,20 @@ namespace Ogre{
                         mUnit->setRotateAnimation(fval);
                     break;
                 case ID_SCALE:
-                    if(prop->values.empty())
                     {
-                        compiler->addError(ScriptCompiler::CE_NUMBEREXPECTED, prop->file, prop->line);
-                    }
-                    else if(prop->values.size() > 2)
-                    {
-                        compiler->addError(ScriptCompiler::CE_FEWERPARAMETERSEXPECTED, prop->file, prop->line,
-                                           "scale must have at most 2 arguments");
-                    }
-                    else
-                    {
-                        AbstractNodeList::const_iterator i0 = getNodeAt(prop->values, 0), i1 = getNodeAt(prop->values, 1);
-                        Real x, y;
-                        if(getReal(*i0, &x) && getReal(*i1, &y))
-                            mUnit->setTextureScale(x, y);
+                        std::vector<float> v;
+                        if(prop->values.size() == 2 && getVector(prop->values.begin(), prop->values.end(), v, 2))
+                            mUnit->setTextureScale(v[0], v[1]);
                         else
                             compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line,
-                                               "first and second arguments must both be valid number values (received " + (*i0)->getValue() + ", " + (*i1)->getValue() + ")");
+                                               "scale requires exactly 2 numeric arguments");
                     }
                     break;
                 case ID_WAVE_XFORM:
-                    if(prop->values.empty())
+                    if(prop->values.size() != 6)
                     {
-                        compiler->addError(ScriptCompiler::CE_NUMBEREXPECTED, prop->file, prop->line);
-                    }
-                    else if(prop->values.size() > 6)
-                    {
-                        compiler->addError(ScriptCompiler::CE_FEWERPARAMETERSEXPECTED, prop->file, prop->line,
-                                           "wave_xform must have at most 6 arguments");
+                        compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line,
+                                           "wave_xform requires exactly 6 arguments");
                     }
                     else
                     {
@@ -3473,6 +3417,14 @@ namespace Ogre{
 
                     ProcessResourceNameScriptCompilerEvent evt(ProcessResourceNameScriptCompilerEvent::GPU_PROGRAM, value);
                     compiler->_fireEvent(&evt, 0);
+
+                    if (evt.mName == obj->name)
+                    {
+                        compiler->addError(*prop, "cannot be a delegate of itself",
+                                           ScriptCompiler::CE_INVALIDPARAMETERS);
+                        continue;
+                    }
+
                     delegates.push_back(evt.mName);
                 }
                 else
@@ -4176,16 +4128,38 @@ namespace Ogre{
                 }
             }
 
+            // Look up the auto constant - if the next token is a known auto constant name,
+            // the parameter is driven automatically instead of by literal values
+            const GpuProgramParameters::AutoConstantDefinition* autoDef = NULL;
+            if (arrayStart != arrayEnd && (*arrayStart)->type == ANT_ATOM)
+            {
+                String acName = static_cast<AtomAbstractNode*>(arrayStart->get())->value;
+                StringUtil::toLowerCase(acName);
+                autoDef = GpuProgramParameters::getAutoConstantDefinition(acName);
+            }
+
             // define constant entry
             try
             {
                 sharedParams->addConstantDefinition(pName, constType, arraySz);
+
+                if(autoDef)
+                {
+                    sharedParams->setAutoConstant(pName, autoDef->acType);
+                    arrayStart++;
+                }
             }
             catch(Exception& e)
             {
                 compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line,
                                    e.getDescription());
                 continue;
+            }
+
+            if (autoDef && arrayStart != arrayEnd)
+            {
+                compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line,
+                                   "unexpected extra parameters after auto constant name");
             }
 
             // amount of individual numbers to read
@@ -5114,6 +5088,14 @@ namespace Ogre{
                                 }
                             }
 
+                            if(id >= OGRE_MAX_TEXTURE_LAYERS)
+                            {
+                                compiler->addError(ScriptCompiler::CE_INVALIDPARAMETERS, prop->file, prop->line,
+                                                   "input id must be less than " +
+                                                       std::to_string(OGRE_MAX_TEXTURE_LAYERS));
+                                return;
+                            }
+
                             mPass->setInput(id, name, index);
                         }
                         else
@@ -5220,7 +5202,7 @@ namespace Ogre{
         if(node->type == ANT_OBJECT)
         {
             ObjectAbstractNode *obj = static_cast<ObjectAbstractNode*>(node.get());
-            ObjectAbstractNode *parent = obj->parent ? static_cast<ObjectAbstractNode*>(obj->parent) : 0;
+            ObjectAbstractNode *parent = obj->parent && obj->parent->type == ANT_OBJECT ? static_cast<ObjectAbstractNode*>(obj->parent) : 0;
             if(obj->id == ID_MATERIAL)
                 translator = &mMaterialTranslator;
             else if(obj->id == ID_TECHNIQUE && parent && parent->id == ID_MATERIAL)
