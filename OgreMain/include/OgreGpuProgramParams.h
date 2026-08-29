@@ -1747,13 +1747,21 @@ namespace Ogre {
         std::vector<AutoConstantEntry> mAutoConstants;
 
         bool mDirty;
+        bool mUseLinearColours;
 
         template <typename T> void _setNamedConstant(const String& name, const T* val, uint32 count);
+
+        void _updateAutoParam(AutoConstantEntry& entry, const char* data, uint32 size);
     public:
         GpuSharedParameters(const String& name);
 
         /// Get the name of this shared parameter set.
         const String& getName() { return mName; }
+
+        /// Convert colour parameters from gamma to linear space when setting them.
+        /// This is useful when you have your materials defined in gamma space but your
+        /// rendering is in linear space.
+        void setUseLinearColours(bool enable) { mUseLinearColours = enable; }
 
         /** Add a new constant definition to this shared set of parameters.
 

@@ -393,18 +393,6 @@ namespace Ogre {
             : left( l ), top( t ), right( r ), bottom( b )
           {
           }
-          TRect( TRect const & o )
-            : left( o.left ), top( o.top ), right( o.right ), bottom( o.bottom )
-          {
-          }
-          TRect & operator=( TRect const & o )
-          {
-            left = o.left;
-            top = o.top;
-            right = o.right;
-            bottom = o.bottom;
-            return *this;
-          }
           T width() const
           {
             return right - left;
@@ -482,11 +470,11 @@ namespace Ogre {
           }
           bool operator!=(const TRect& rhs) const { return !(*this == rhs); }
         };
-        template<typename T>
-        std::ostream& operator<<(std::ostream& o, const TRect<T>& r)
+        template <typename CharT, typename TraitsT, typename T>
+        std::basic_ostream<CharT, TraitsT>& operator<<(std::basic_ostream<CharT, TraitsT>& o, const TRect<T>& r)
         {
-            o << "TRect<>(l:" << r.left << ", t:" << r.top << ", r:" << r.right << ", b:" << r.bottom << ")";
-            return o;
+          o << "TRect<>(l:" << r.left << ", t:" << r.top << ", r:" << r.right << ", b:" << r.bottom << ")";
+          return o;
         }
 
         /** Structure used to define a rectangle in a 2-D floating point space.

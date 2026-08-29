@@ -281,11 +281,11 @@ namespace Ogre
         /// Loads the requested script and converts it to an AST
         AbstractNodeListPtr loadImportPath(const String &name);
         /// Returns the abstract nodes from the given tree which represent the target
-        AbstractNodeList locateTarget(const AbstractNodeList& nodes, const String &target);
+        AbstractNodePtr locateTarget(const AbstractNodeList& nodes, const String &target);
         /// Handles object inheritance and variable expansion
-        void processObjects(AbstractNodeList& nodes, const AbstractNodeList &top);
+        void processObjects(AbstractNodeList& nodes, const AbstractNodeList &top, const ObjectAbstractNode* exclude = nullptr);
         /// Handles processing the variables
-        void processVariables(AbstractNodeList& nodes);
+        void processVariables(AbstractNodeList& nodes, std::set<String>& expadingVars);
         /// This function overlays the given object on the destination object following inheritance rules
         void overlayObject(const ObjectAbstractNode &source, ObjectAbstractNode& dest);
         /// Returns true if the given class is name excluded

@@ -326,10 +326,8 @@ namespace Ogre
     //      GpuSharedParameters Methods
     //-----------------------------------------------------------------------------
     GpuSharedParameters::GpuSharedParameters(const String& name)
-        :mName(name)
-        , mVersion(0), mOffset(0), mDirty(false)
+        : mName(name), mVersion(0), mOffset(0), mDirty(false), mUseLinearColours(false)
     {
-
     }
     //-----------------------------------------------------------------------------
     size_t GpuSharedParameters::calculateSize(void) const
@@ -411,41 +409,72 @@ namespace Ogre
         mAutoConstants.push_back({def.physicalIndex, acType, def.arraySize, def.elementSize});
         // no version increment, as this is not a change to the buffer layout
     }
+    void GpuSharedParameters::_updateAutoParam(AutoConstantEntry& entry, const char* data, uint32 size)
+    {
+        auto hash = FastHash(data, size);
+        if (hash != entry.hash)
+        {
+            if(mUseLinearColours && entry.acType == GpuProgramParameters::ACT_LIGHT_DIFFUSE_COLOUR_POWER_SCALED_ARRAY)
+            {
+                auto colours = reinterpret_cast<const ColourValue*>(data + entry.physicalIndex);
+                for (size_t i = 0; i < entry.arraySize; ++i)
+                {
+                    memcpy(&mConstants[entry.physicalIndex + i * sizeof(ColourValue)], colours[i].gammaToLinear().ptr(),
+                           sizeof(ColourValue));
+                }
+            }
+            else
+            {
+                size = size ? size : entry.arraySize * entry.elementCount * sizeof(float);
+                memcpy(&mConstants[entry.physicalIndex], data, size);
+            }
+            entry.hash = hash;
+            _markDirty();
+        }
+    }
     void GpuSharedParameters::_updateAutoParams(const AutoParamDataSource* source)
     {
         for(auto& ac : mAutoConstants)
         {
-            switch(ac.acType)
+            const char* data = nullptr;
+            uint32 size = 0;
+            switch (ac.acType)
             {
             case GpuProgramParameters::ACT_FROXEL_GRID:
             {
                 const auto& froxelGrid = source->getFroxelGrid();
-                auto size = std::min(froxelGrid.size(), ac.arraySize * ac.elementCount) * sizeof(uint32);
-                auto hash = FastHash((const char*)froxelGrid.data(), size);
-                if (hash != ac.hash)
-                {
-                    memcpy(&mConstants[ac.physicalIndex], froxelGrid.data(), size);
-                    ac.hash = hash;
-                    _markDirty();
-                }
+                size = std::min(froxelGrid.size(), ac.arraySize * ac.elementCount) * sizeof(uint32);
+                data = (const char*)froxelGrid.data();
             }
             break;
             case GpuProgramParameters::ACT_FROXEL_RECORDS:
             {
                 const auto& froxelRecords = source->getFroxelRecords();
-                auto size = std::min(froxelRecords.size(), ac.arraySize * ac.elementCount) * sizeof(uint32);
-                auto hash = FastHash((const char*)froxelRecords.data(), size);
-                if (hash != ac.hash)
-                {
-                    memcpy(&mConstants[ac.physicalIndex], froxelRecords.data(), size);
-                    ac.hash = hash;
-                    _markDirty();
-                }
+                size = std::min(froxelRecords.size(), ac.arraySize * ac.elementCount) * sizeof(uint32);
+                data = (const char*)froxelRecords.data();
             }
             break;
+            case GpuProgramParameters::ACT_LIGHT_POSITION_VIEW_SPACE_ARRAY:
+                data = (const char*)source->getLightPositionViewSpaceArray(ac.arraySize);
+                break;
+            case GpuProgramParameters::ACT_LIGHT_DIRECTION_VIEW_SPACE_ARRAY:
+                data = (const char*)source->getLightDirectionViewSpaceArray(ac.arraySize);
+                break;
+            case GpuProgramParameters::ACT_LIGHT_ATTENUATION_ARRAY:
+                data = (const char*)source->getLightAttenuationArray(ac.arraySize);
+                break;
+            case GpuProgramParameters::ACT_SPOTLIGHT_PARAMS_ARRAY:
+                data = (const char*)source->getSpotlightParamsArray(ac.arraySize);
+                break;
+            case GpuProgramParameters::ACT_LIGHT_DIFFUSE_COLOUR_POWER_SCALED_ARRAY:
+                data = (const char*)source->getLightDiffuseColourPowerScaledArray(ac.arraySize);
+                break;
             default:
+                continue;
                 break;
             }
+
+            _updateAutoParam(ac, data, size);
         }
     }
     //---------------------------------------------------------------------
@@ -556,7 +585,7 @@ namespace Ogre
     //---------------------------------------------------------------------
     void GpuSharedParameters::setNamedConstant(const String& name, const ColourValue& colour)
     {
-        _setNamedConstant(name, colour.ptr(), 4);
+        _setNamedConstant(name, mUseLinearColours ? colour.gammaToLinear().ptr() : colour.ptr(), 4);
     }
     //---------------------------------------------------------------------
     template <typename T> void GpuSharedParameters::_setNamedConstant(const String& name, const T* val, uint32 count)

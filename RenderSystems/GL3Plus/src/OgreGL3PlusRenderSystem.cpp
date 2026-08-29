@@ -262,6 +262,8 @@ namespace Ogre {
         // Vertex Array Objects are supported in 3.0
         rsc->setCapability(RSC_VAO);
 
+        rsc->setCapability(RSC_UNIFORM_BUFFERS);
+
         // Check for texture compression
         rsc->setCapability(RSC_TEXTURE_COMPRESSION);
 
@@ -407,7 +409,7 @@ namespace Ogre {
             rsc->setCapability(RSC_COMPUTE_PROGRAM);
 
             OGRE_CHECK_GL_ERROR(glGetIntegerv(GL_MAX_COMPUTE_UNIFORM_COMPONENTS, &constantCount));
-            rsc->setComputeProgramConstantFloatCount(constantCount);
+            rsc->setComputeProgramConstantFloatCount(constantCount/4);
 
             //TODO we should also check max workgroup count & size
             // OGRE_CHECK_GL_ERROR(glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_SIZE, &workgroupCount));

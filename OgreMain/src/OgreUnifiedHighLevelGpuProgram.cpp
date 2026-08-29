@@ -82,15 +82,25 @@ namespace Ogre
                 deleg = GpuProgramManager::getSingleton().getByName(dn, RGN_AUTODETECT);
 
             // Silently ignore missing links
-            if(!deleg || (!deleg->isSupported() && !deleg->hasCompileError()))
+            if(!deleg)
                 continue;
+
+            if (deleg->getLanguage() == sLanguage)
+            {
+                LogManager::getSingleton().logError("unified program '" + getName() +
+                                                    "' cannot delegate to another unified program '" + dn + "'");
+                continue;
+            }
 
             if (deleg->getType() != getType())
             {
                 LogManager::getSingleton().logError("unified program '" + getName() +
-                                                    "' delegating to program with different type '" + dn + "'");
+                                                    "' cannot delegate to program with different type '" + dn + "'");
                 continue;
             }
+
+            if(!deleg->isSupported() && !deleg->hasCompileError())
+                continue;
 
             mChosenDelegate = deleg;
             break;

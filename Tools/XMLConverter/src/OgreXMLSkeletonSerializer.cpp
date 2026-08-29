@@ -79,27 +79,22 @@ namespace Ogre {
         elem = rootElem.child("bones");
         if (elem)
         {
-            readBones(pSkeleton, elem);         
-            elem = rootElem.child("bonehierarchy");
+            readBones(pSkeleton, elem);
 
+            elem = rootElem.child("bonehierarchy");
             if (elem)
             {
                 createHierarchy(pSkeleton, elem) ;
-                elem = rootElem.child("bones");
-                if (elem)
-                {
-                    readBones2(pSkeleton, elem);
-                    elem = rootElem.child("animations");
-                    if (elem)
-                    {
-                        readAnimations(pSkeleton, elem);
-                    }
-                    elem = rootElem.child("animationlinks");
-                    if (elem)
-                    {
-                        readSkeletonAnimationLinks(pSkeleton, elem);
-                    }
-                }
+            }
+            elem = rootElem.child("animations");
+            if (elem)
+            {
+                readAnimations(pSkeleton, elem);
+            }
+            elem = rootElem.child("animationlinks");
+            if (elem)
+            {
+                readSkeletonAnimationLinks(pSkeleton, elem);
             }
         }
         LogManager::getSingleton().logMessage("XMLSkeletonSerializer: Finished. Running SkeletonSerializer..." );
@@ -107,12 +102,13 @@ namespace Ogre {
     
 
     //---------------------------------------------------------------------
-    // sets names
+    // sets names, positions and orientations.
     void XMLSkeletonSerializer::readBones(Skeleton* skel, pugi::xml_node& mBonesNode)
     {
-        LogManager::getSingleton().logMessage("XMLSkeletonSerializer: Reading Bones name...");
-        
-        Quaternion quat ;
+        LogManager::getSingleton().logMessage("XMLSkeletonSerializer: Reading Bones...");
+
+        Bone* bone;
+        Quaternion quat;
 
         int max_id = -1;
 
@@ -124,32 +120,17 @@ namespace Ogre {
             if(auto idattr = bonElem.attribute("id"))
             {
                 id = StringConverter::parseInt(idattr.value());
-                skel->createBone(name,id) ;
+                bone = skel->createBone(name,id) ;
             }
             else
             {
-                id = skel->createBone(name)->getHandle();
+                bone = skel->createBone(name);
+                id = bone->getHandle();
             }
 
 
             max_id = std::max(id, max_id);
-        }
 
-        OgreAssert(size_t(max_id + 1) == skel->getBones().size(), "Bone ids must be consecutive in range [0; N)");
-    }
-    // ---------------------------------------------------------
-    // set positions and orientations.
-    void XMLSkeletonSerializer::readBones2(Skeleton* skel, pugi::xml_node& mBonesNode)
-    {
-        LogManager::getSingleton().logMessage("XMLSkeletonSerializer: Reading Bones data...");
-        
-        Bone* btmp ;
-        Quaternion quat ;
-
-        for (pugi::xml_node& bonElem : mBonesNode.children())
-        {
-            String name = bonElem.attribute("name").value();
-//          int id = StringConverter::parseInt(bonElem.attribute("id").c_str();
 
             pugi::xml_node posElem = bonElem.child("position");
             pugi::xml_node rotElem = bonElem.child("rotation");
@@ -213,15 +194,14 @@ namespace Ogre {
                 + " - angle: " + StringConverter::toString(angle) +" - axe: "
                 + StringConverter::toString(axis.x) + "," + StringConverter::toString(axis.y) + "," + StringConverter::toString(axis.z) );
             */      
-            
-            btmp = skel->getBone(name) ;
 
-            btmp -> setPosition(pos);
+            bone -> setPosition(pos);
             quat.FromAngleAxis(angle,axis);
-            btmp -> setOrientation(quat) ;
-            btmp -> setScale(scale);
+            bone -> setOrientation(quat) ;
+            bone -> setScale(scale);
 
         } // bones
+        OgreAssert(size_t(max_id + 1) == skel->getBones().size(), "Bone ids must be consecutive in range [0; N)");
     }
     //-------------------------------------------------------------------
     void XMLSkeletonSerializer::createHierarchy(Skeleton* skel, pugi::xml_node& mHierNode) {
@@ -460,13 +440,17 @@ namespace Ogre {
         }
 
         // Write parents
-        pugi::xml_node hierElem = rootNode.append_child("bonehierarchy");
+        pugi::xml_node hierElem;
         for (Bone* pBone : pSkel->getBones())
         {
             String name = pBone->getName() ;
 
             if (auto pParent = pBone->getParent())
             {
+                if (!hierElem)
+                {
+                    hierElem = rootNode.append_child("bonehierarchy");
+                }
                 writeBoneParent(hierElem, name, pParent->getName());
             }
         }

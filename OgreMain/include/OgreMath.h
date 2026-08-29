@@ -66,9 +66,9 @@ namespace Ogre
     public:
         explicit Radian ( float r=0 ) : mRad(r) {}
         Radian ( const Degree& d );
-        Radian (const Ogre::Radian& rhs) : mRad(rhs.mRad) {}
-        Radian& operator = ( const float& f ) { mRad = f; return *this; }
-        Radian& operator = ( const Radian& r ) { mRad = r.mRad; return *this; }
+        Radian (const Radian& rhs) = default;
+        Radian& operator = ( float f ) { mRad = f; return *this; }
+        Radian& operator = ( const Radian& r ) = default;
         Radian& operator = ( const Degree& d );
 
         float valueDegrees() const; // see bottom of this file
@@ -97,13 +97,6 @@ namespace Ogre
         bool operator != ( const Radian& r ) const { return mRad != r.mRad; }
         bool operator >= ( const Radian& r ) const { return mRad >= r.mRad; }
         bool operator >  ( const Radian& r ) const { return mRad >  r.mRad; }
-
-        inline friend std::ostream& operator <<
-            ( std::ostream& o, const Radian& v )
-        {
-            o << "Radian(" << v.valueRadians() << ")";
-            return o;
-        }
     };
 
     /** Wrapper class which indicates a given angle value is in Degrees.
@@ -117,10 +110,10 @@ namespace Ogre
 
     public:
         explicit Degree ( float d=0 ) : mDeg(d) {}
-        Degree ( const Radian& r ) : mDeg(r.valueDegrees()) {}
-        Degree (const Ogre::Degree& rhs) : mDeg(rhs.mDeg) {}
-        Degree& operator = ( const float& f ) { mDeg = f; return *this; }
-        Degree& operator = ( const Degree& d ) { mDeg = d.mDeg; return *this; }
+        Degree (Radian r ) : mDeg(r.valueDegrees()) {}
+        Degree (const Degree& rhs) = default;
+        Degree& operator = ( float f ) { mDeg = f; return *this; }
+        Degree& operator = ( const Degree& d ) = default;
         Degree& operator = ( const Radian& r ) { mDeg = r.valueDegrees(); return *this; }
 
         float valueDegrees() const { return mDeg; }
@@ -149,14 +142,10 @@ namespace Ogre
         bool operator != ( const Degree& d ) const { return mDeg != d.mDeg; }
         bool operator >= ( const Degree& d ) const { return mDeg >= d.mDeg; }
         bool operator >  ( const Degree& d ) const { return mDeg >  d.mDeg; }
-
-        inline friend std::ostream& operator <<
-            ( std::ostream& o, const Degree& v )
-        {
-            o << "Degree(" << v.valueDegrees() << ")";
-            return o;
-        }
     };
+
+    _OgreExport std::ostream& operator<<(std::ostream& o, const Radian& v);
+    _OgreExport std::ostream& operator<<(std::ostream& o, const Degree& v);
 
     /** Wrapper class which identifies a value as the currently default angle 
         type, as defined by Math::setAngleUnit.
@@ -266,9 +255,7 @@ namespace Ogre
         static inline int IAbs (int iValue) { return ( iValue >= 0 ? iValue : -iValue ); }
         static inline int ICeil (float fValue) { return int(std::ceil(fValue)); }
         static inline int IFloor (float fValue) { return int(std::floor(fValue)); }
-        static int ISign (int iValue) {
-            return ( iValue > 0 ? +1 : ( iValue < 0 ? -1 : 0 ) );
-        }
+        static int ISign(int iValue) { return (iValue > 0) - (iValue < 0); }
 
         /** Absolute value function
             @param
@@ -373,14 +360,7 @@ namespace Ogre
 
         static inline Real Pow (Real fBase, Real fExponent) { return std::pow(fBase,fExponent); }
 
-        static Real Sign(Real fValue)
-        {
-            if (fValue > 0.0)
-                return 1.0;
-            if (fValue < 0.0)
-                return -1.0;
-            return 0.0;
-        }
+        static Real Sign(Real fValue) { return Real((fValue > 0) - (fValue < 0)); }
 
         static inline Radian Sign ( const Radian& rValue )
         {
@@ -396,7 +376,7 @@ namespace Ogre
         static inline double saturate(double t) { return Clamp(t, 0.0, 1.0); }
 
         /// saturated cast of size_t to uint16
-        static inline uint16 uint16Cast(size_t t) { return t < UINT16_MAX ? uint16(t) : UINT16_MAX; }
+        static inline uint16 uint16Cast(size_t t) { return t <= UINT16_MAX ? uint16(t) : UINT16_MAX; }
 
         /** Simulate the shader function lerp which performers linear interpolation
 
